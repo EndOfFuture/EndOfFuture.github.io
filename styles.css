@@ -1,0 +1,22 @@
+.fbox {
+    display: flex;
+}
+#pics {
+    margin: 5pt;
+    border: 2pt dashed black;
+    text-align: center;
+    width: 50%;
+    height: 50%;
+}
+#poem {
+    margin-inline: 5pt;
+    width: 50%;
+    border: 2pt dashed black;
+}
+#poem p{
+    text-align: center;
+}
+
+#para {
+
+}
