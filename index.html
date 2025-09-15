@@ -27,11 +27,15 @@
             margin-bottom: 20px;
             color: #0ff;
             text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+            font-size: 9rem;
+            font-family: "Digital";
         }
         
         .time-display {
             color: #0ff;
             text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+            font-size: 9rem;
+            font-family: "Digital";
         }
         
         /* 默认字体，如果自定义字体加载失败则使用此字体 */
@@ -48,58 +52,6 @@
     </div>
 
     <script>
-        // 默认配置
-        let config = {
-            fontSize: '5rem',
-            fontFamily: 'Digital'
-        };
-
-        // 加载配置
-        function loadConfig() {
-            const mockConfig = {
-                fontSize: '9rem',
-                fontFamily: 'Digital',
-            };
-            applyConfig(mockConfig);
-            
-            // 实际应用中使用以下代码从gitee加载配置
-            /*
-            fetch('https://gitee.com/your-username/your-repo/raw/branch/config.json')
-                .then(response => response.json())
-                .then(data => applyConfig(data))
-                .catch(error => {
-                    console.error('加载配置失败:', error);
-                    applyConfig(config); // 使用默认配置
-                });
-            */
-        }
-
-        // 应用配置
-        function applyConfig(newConfig) {
-            config = {...config, ...newConfig};
-            
-            // 动态加载字体
-            if (config.fontUrl) {
-                const fontFace = new FontFace(config.fontFamily, `url(${config.fontUrl})`);
-                fontFace.load().then(function(loadedFace) {
-                    document.fonts.add(loadedFace);
-                    updateStyles();
-                }).catch(function(error) {
-                    console.error('字体加载失败:', error);
-                    updateStyles();
-                });
-            } else {
-                updateStyles();
-            }
-        }
-
-        // 更新样式
-        function updateStyles() {
-            document.body.style.fontFamily = config.fontFamily;
-            document.querySelector('.date-display').style.fontSize = config.fontSize;
-            document.querySelector('.time-display').style.fontSize = config.fontSize;
-        }
-
         // 更新时钟显示
         function updateClock() {
             const now = new Date();
@@ -123,7 +75,6 @@
 
         // 初始化
         function init() {
-            loadConfig();
             updateClock();
             setInterval(updateClock, 1000);
         }
