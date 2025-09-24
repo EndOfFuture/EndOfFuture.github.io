@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倒计时时钟</title>
+    <style>
+        /* 基础样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Digital', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+        
+        .clock-container {
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            background: rgba(20, 20, 20, 0.7);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            position: relative;
+        }
+        
+        .time-display {
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+            margin: 0;
+            transition: all 0.3s ease;
+            font-size: 6rem;
+        }
+        
+        .status {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+        
+        /* 默认字体 */
+        @font-face {
+            font-family: 'Digital';
+            src: local('Courier New'), local('Monaco'), monospace;
+        }
+        
+        /* 配置面板样式 */
+        .config-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            display: none;
+            z-index: 100;
+            border: 1px solid #0ff;
+        }
+        
+        .config-panel h3 {
+            margin-top: 0;
+            color: #0ff;
+            text-align: center;
+        }
+        
+        .config-panel label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #0ff;
+        }
+        
+        .config-panel input, .config-panel select {
+            width: 100%;
+            padding: 8px;
+            background: #111;
+            color: #0ff;
+            border: 1px solid #0ff;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        .config-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.8);
+            color: #0ff;
+            border: 1px solid #0ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+        
+        .config-toggle:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .config-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .config-buttons button {
+            flex: 1;
+            padding: 8px;
+            background: #0ff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .config-buttons button:hover {
+            background: #0cc;
+            transform: translateY(-2px);
+        }
+        
+        .alarm-status {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 5px;
+            border-left: 3px solid #0ff;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .time-display {
+                font-size: 4rem;
+            }
+            
+            .status {
+                font-size: 1.2rem;
+            }
+            
+            .clock-container {
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .time-display {
+                font-size: 3rem;
+            }
+            
+            .status {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="config-toggle" onclick="toggleConfig()">⚙️</button>
+    
+    <div class="config-panel" id="configPanel">
+        <h3>时钟配置</h3>
+        <label for="fontSize">字号:</label>
+        <input type="text" id="fontSize" value="6rem">
+        
+        <label for="fontFamily">字体:</label>
+        <select id="fontFamily">
+            <option value="Digital">Digital (默认)</option>
+            <option value="Arial">Arial</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Courier New">Courier New</option>
+        </select>
+        
+        <div class="alarm-status">
+            <strong>闹钟状态:</strong> <span id="alarmState">未激活</span>
+        </div>
+        
+        <div class="config-buttons">
+            <button onclick="applyConfig()">应用配置</button>
+            <button onclick="testAlarm()">测试闹钟</button>
+        </div>
+    </div>
+
+    <div class="clock-container">
+        <h1 id="time" class="time-display">00:00:00</h1>
+        <div id="status" class="status"></div>
+    </div>
+
+    <!-- 闹钟音频 -->
+    <audio id="alarmSound" preload="auto">
+        <source src="Alarm09.wav" type="audio/wav">
+    </audio>
+
+    <script>
+        // 配置对象
+        let config = {
+            fontSize: '6rem',
+            fontFamily: 'Digital'
+        };
+
+        // 闹钟状态变量
+        let alarmPlayed = false;
+        let alarmPlaying = false;
+
+        // 切换配置面板显示
+        function toggleConfig() {
+            const panel = document.getElementById('configPanel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // 应用配置
+        function applyConfig() {
+            config.fontSize = document.getElementById('fontSize').value;
+            config.fontFamily = document.getElementById('fontFamily').value;
+            
+            // 更新样式
+            updateStyles();
+            
+            // 保存到本地存储
+            localStorage.setItem('clockConfig', JSON.stringify(config));
+            
+            // 隐藏配置面板
+            document.getElementById('configPanel').style.display = 'none';
+        }
+
+        // 测试闹钟
+        function testAlarm() {
+            playAlarm();
+        }
+
+        // 播放闹钟
+        function playAlarm() {
+            const alarmSound = document.getElementById('alarmSound');
+            alarmSound.currentTime = 0;
+            alarmSound.play().then(() => {
+                alarmPlaying = true;
+                updateAlarmStatus();
+            }).catch(error => {
+                console.error('播放闹钟失败:', error);
+            });
+        }
+
+        // 停止闹钟
+        function stopAlarm() {
+            const alarmSound = document.getElementById('alarmSound');
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            alarmPlaying = false;
+            updateAlarmStatus();
+        }
+
+        // 更新闹钟状态显示
+        function updateAlarmStatus() {
+            const alarmState = document.getElementById('alarmState');
+            if (alarmPlaying) {
+                alarmState.textContent = '正在响铃';
+                alarmState.style.color = '#0ff';
+            } else if (alarmPlayed) {
+                alarmState.textContent = '今日已响铃';
+                alarmState.style.color = '#0ff';
+            } else {
+                alarmState.textContent = '未激活';
+                alarmState.style.color = '#0aa';
+            }
+        }
+
+        // 更新样式
+        function updateStyles() {
+            const timeDisplay = document.querySelector('.time-display');
+            timeDisplay.style.fontSize = "15rem";
+            timeDisplay.style.fontFamily = config.fontFamily;
+        }
+
+        // 加载配置
+        function loadConfig() {
+            const savedConfig = localStorage.getItem('clockConfig');
+            if (savedConfig) {
+                config = JSON.parse(savedConfig);
+                
+                // 更新配置面板
+                document.getElementById('fontSize').value = config.fontSize;
+                document.getElementById('fontFamily').value = config.fontFamily;
+            }
+            
+            updateStyles();
+        }
+
+        // 更新时钟显示
+        function updateClock() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentSecond = now.getSeconds();
+            
+            // 判断是否在6:00到7:40之间
+            const isCountdownTime = (currentHour === 6) || 
+                                  (currentHour === 7 && currentMinute < 40);
+            
+            let displayText = "";
+            let statusText = "";
+            
+            // 检查是否到达7:25
+            if (currentHour === 7 && currentMinute === 25 && currentSecond === 0 && !alarmPlayed) {
+                playAlarm();
+                alarmPlayed = true;
+            }
+            
+            // 每天午夜重置闹钟状态
+            if (currentHour === 0 && currentMinute === 0 && currentSecond === 0) {
+                alarmPlayed = false;
+                updateAlarmStatus();
+            }
+            
+            if (isCountdownTime) {
+                // 计算距离7:25的倒计时
+                const targetHour = 7;
+                const targetMinute = 25;
+                
+                // 计算总秒数差
+                let totalSecondsDiff = (targetHour * 3600 + targetMinute * 60) - 
+                                      (currentHour * 3600 + currentMinute * 60 + currentSecond);
+                
+                // 如果已经过了7:25，显示0:00:00
+                if (totalSecondsDiff <= 0) {
+                    displayText = "00:00:00";
+                    statusText = "已到达目标时间";
+                    
+                    // 如果闹钟正在响，5秒后自动停止
+                    if (alarmPlaying && currentSecond >= 10) {
+                        stopAlarm();
+                    }
+                } else {
+                    // 计算时、分、秒
+                    const hours = Math.floor(totalSecondsDiff / 3600);
+                    const minutes = Math.floor((totalSecondsDiff % 3600) / 60);
+                    const seconds = totalSecondsDiff % 60;
+                    
+                    displayText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    statusText = "距离7:25还剩";
+                }
+            } else {
+                // 正常显示时间
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                const seconds = now.getSeconds().toString().padStart(2, '0');
+                
+                displayText = `${hours}:${minutes}:${seconds}`;
+                
+                // 不在倒计时时间段时停止闹钟
+                if (alarmPlaying) {
+                    stopAlarm();
+                }
+            }
+            
+            // 更新显示
+            document.getElementById('time').textContent = displayText;
+            document.getElementById('status').textContent = statusText;
+            updateAlarmStatus();
+        }
+
+        // 初始化
+        function init() {
+            loadConfig();
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // 添加点击页面任意位置关闭配置面板的功能
+            document.addEventListener('click', function(event) {
+                const configPanel = document.getElementById('configPanel');
+                const configToggle = document.querySelector('.config-toggle');
+                
+                if (configPanel.style.display === 'block' && 
+                    !configPanel.contains(event.target) && 
+                    !configToggle.contains(event.target)) {
+                    configPanel.style.display = 'none';
+                }
+            });
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
