@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA 密码子翻译工具 · 序列操作与对比</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-alt: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --accent: #0891b2;
+            --accent-hover: #0e7490;
+            --accent-light: #ecfeff;
+            --accent-border: #a5f3fc;
+            --red: #ef4444;
+            --red-light: #fef2f2;
+            --amber: #f59e0b;
+            --amber-light: #fffbeb;
+            --green: #10b981;
+            --green-light: #ecfdf5;
+            --purple: #8b5cf6;
+            --purple-light: #f5f3ff;
+            --purple-border: #c4b5fd;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07),0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.18);
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+            --font-mono: 'SF Mono','Cascadia Code','Consolas','Monaco','Menlo','Courier New',monospace;
+            --font-sans: 'Inter','SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;
+            --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:var(--font-sans);
+            background:linear-gradient(135deg,#f0f9fa 0%,#f8fafc 30%,#fefcfb 70%,#f8fafc 100%);
+            background-attachment:fixed;color:var(--text);line-height:1.6;min-height:100vh;
+            -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+        }
+        body::before{
+            content:'';position:fixed;inset:0;
+            background:radial-gradient(ellipse at 15% 20%,rgba(8,145,178,0.04) 0%,transparent 55%),
+            radial-gradient(ellipse at 80% 75%,rgba(139,92,246,0.03) 0%,transparent 55%),
+            radial-gradient(ellipse at 50% 50%,rgba(16,185,129,0.02) 0%,transparent 60%);
+            pointer-events:none;z-index:0;
+        }
+        .app-container{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:20px 16px 40px;}
+        .header{text-align:center;padding:28px 20px 10px;}
+        .header .icon-row{display:inline-flex;align-items:center;gap:10px;margin-bottom:6px;}
+        .header .dna-icon{width:42px;height:42px;background:linear-gradient(135deg,#0891b2,#06b6d4);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:0 4px 14px rgba(8,145,178,0.25);}
+        .header h1{font-size:1.75rem;font-weight:700;letter-spacing:-0.02em;color:#0f172a;}
+        .header .subtitle{font-size:0.9rem;color:var(--text-secondary);margin-top:2px;}
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:20px 24px;margin-bottom:16px;transition:box-shadow var(--transition);}
+        .card:hover{box-shadow:var(--shadow-md);}
+        .card-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+        .card-header .badge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;font-weight:700;font-size:0.85rem;flex-shrink:0;}
+        .badge.input{background:#dbeafe;color:#1d4ed8;}
+        .badge.result{background:#dcfce7;color:#15803d;}
+        .badge.ops{background:#f3e8ff;color:#7c3aed;}
+        .badge.table{background:#fef3c7;color:#b45309;}
+        .badge.compare{background:#fce7f3;color:#be185d;}
+        .card-header h2{font-size:1.05rem;font-weight:600;color:#1e293b;letter-spacing:-0.01em;}
+        .card-header .hint{font-size:0.78rem;color:var(--text-muted);margin-left:auto;}
+        .textarea-wrapper{position:relative;}
+        textarea{width:100%;min-height:110px;padding:12px 14px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.7;letter-spacing:0.02em;border:2px solid var(--border);border-radius:var(--radius);background:#fafbfc;color:var(--text);resize:vertical;transition:all var(--transition);outline:none;}
+        textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(8,145,178,0.08);background:#fff;}
+        textarea::placeholder{color:#c0c8d4;font-family:var(--font-mono);font-size:0.82rem;}
+        .char-count{position:absolute;bottom:8px;right:12px;font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);background:rgba(255,255,255,0.85);padding:2px 7px;border-radius:4px;pointer-events:none;}
+        .controls-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;}
+        .controls-row .label-text{font-size:0.82rem;font-weight:500;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;}
+        .segmented{display:inline-flex;background:var(--surface-alt);border-radius:8px;padding:3px;gap:2px;border:1px solid var(--border);transition:opacity var(--transition);}
+        .segmented.disabled{opacity:0.45;pointer-events:none;}
+        .segmented button{padding:6px 14px;font-size:0.8rem;font-weight:500;border:none;background:transparent;color:var(--text-secondary);border-radius:6px;cursor:pointer;transition:all var(--transition);white-space:nowrap;font-family:var(--font-sans);letter-spacing:-0.01em;}
+        .segmented button:hover{color:var(--text);background:rgba(255,255,255,0.6);}
+        .segmented button.active{background:#fff;color:var(--accent);font-weight:600;box-shadow:var(--shadow-sm);}
+        .toggle-switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-size:0.82rem;font-weight:500;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;}
+        .toggle-switch input{display:none;}
+        .toggle-track{width:42px;height:22px;border-radius:11px;background:#cbd5e1;position:relative;transition:background var(--transition);flex-shrink:0;}
+        .toggle-track::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:transform var(--transition);}
+        .toggle-switch input:checked+.toggle-track{background:var(--accent);}
+        .toggle-switch input:checked+.toggle-track::after{transform:translateX(20px);}
+        .toggle-switch .toggle-label-text{font-size:0.8rem;font-weight:500;}
+        .btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;font-size:0.85rem;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:all var(--transition);letter-spacing:-0.01em;white-space:nowrap;font-family:var(--font-sans);}
+        .btn:active{transform:scale(0.97);}
+        .btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(8,145,178,0.25);}
+        .btn-primary:hover{background:var(--accent-hover);box-shadow:0 4px 16px rgba(8,145,178,0.35);transform:translateY(-1px);}
+        .btn-outline{background:#fff;color:var(--text-secondary);border:1.5px solid var(--border);}
+        .btn-outline:hover{border-color:#c0c8d4;color:var(--text);background:#fafbfc;}
+        .btn-sm{padding:5px 10px;font-size:0.75rem;border-radius:6px;}
+        .btn-ghost{background:transparent;color:var(--accent);border:none;padding:5px 8px;font-size:0.8rem;font-weight:500;cursor:pointer;transition:all var(--transition);border-radius:6px;}
+        .btn-ghost:hover{background:var(--accent-light);}
+        .btn-purple{background:var(--purple);color:#fff;box-shadow:0 2px 8px rgba(139,92,246,0.25);}
+        .btn-purple:hover{background:#7c3aed;box-shadow:0 4px 16px rgba(139,92,246,0.35);}
+        .btn-warn{background:#f59e0b;color:#fff;box-shadow:0 2px 8px rgba(245,158,11,0.25);}
+        .btn-warn:hover{background:#d97706;}
+        .spacer{flex:1;min-width:0;}
+        .alert{padding:9px 12px;border-radius:var(--radius-sm);font-size:0.82rem;font-weight:500;margin-top:8px;display:flex;align-items:center;gap:7px;animation:fadeIn 0.25s ease;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+        .alert-warning{background:#fffbeb;color:#92400e;border:1px solid #fde68a;}
+        .alert-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;}
+        .alert-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;}
+        .alert-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;}
+        .result-section{animation:slideUp 0.35s ease;}
+        @keyframes slideUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+        .seq-highlight-container{margin-top:10px;border:1px solid var(--border);border-radius:var(--radius);background:#f9fafb;padding:10px 12px;font-family:var(--font-mono);overflow-x:auto;display:none;}
+        .seq-highlight-container.visible{display:block;}
+        .seq-highlight-container .seq-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);font-weight:600;margin-bottom:6px;}
+        .seq-highlight-row{display:flex;flex-wrap:wrap;gap:3px;align-items:center;}
+        .seq-codon-block{padding:4px 7px;border-radius:4px;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;}
+        .seq-codon-block.translated{background:#e0f2fe;color:#0369a1;border-color:#bae6fd;}
+        .seq-codon-block.start-codon{background:#d1fae5;color:#065f46;border-color:#a7f3d0;font-weight:700;}
+        .seq-codon-block.stop-codon{background:#fee2e2;color:#991b1b;border-color:#fecaca;font-weight:700;}
+        .seq-codon-block.untranslated{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0;}
+        .seq-codon-block.remaining{background:#fffbeb;color:#92400e;border-color:#fde68a;}
+        .seq-codon-block.modified-zone{background:#f3e8ff;color:#6d28d9;border-color:#c4b5fd;box-shadow:inset 0 0 0 1px rgba(139,92,246,0.3);}
+        .aa-chips-row{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:4px 0;line-height:1;}
+        .aa-chip{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;font-weight:700;font-size:0.8rem;font-family:var(--font-mono);letter-spacing:0.03em;cursor:pointer;transition:transform 0.15s ease,box-shadow 0.15s ease;position:relative;flex-shrink:0;border:2px solid transparent;text-decoration:none;color:inherit;}
+        .aa-chip:hover{transform:scale(1.2);z-index:5;box-shadow:0 6px 20px rgba(0,0,0,0.22);border-color:rgba(0,0,0,0.15);}
+        .aa-chip.stop-chip{background:#f1f5f9;color:#64748b;border-color:#cbd5e1;font-size:0.65rem;width:26px;height:26px;border-radius:13px;cursor:pointer;}
+        .aa-chip.diff-highlight{border-color:#ef4444 !important;box-shadow:0 0 0 3px rgba(239,68,68,0.25);animation:pulseDiff 1.5s ease-in-out infinite;}
+        @keyframes pulseDiff{0%,100%{box-shadow:0 0 0 3px rgba(239,68,68,0.25);}50%{box-shadow:0 0 0 6px rgba(239,68,68,0.08);}}
+        .aa-hydrophobic{background:#fef9c3;color:#854d0e;border-color:#fde68a;}
+        .aa-polar{background:#dcfce7;color:#166534;border-color:#bbf7d0;}
+        .aa-positive{background:#dbeafe;color:#1e40af;border-color:#bfdbfe;}
+        .aa-negative{background:#fce7f3;color:#9d174d;border-color:#fbcfe8;}
+        .aa-aromatic{background:#fed7aa;color:#9a3412;border-color:#fdba74;}
+        .aa-special{background:#e8e5ff;color:#5b21b6;border-color:#d8d4f7;}
+        .detail-table-wrap{margin-top:12px;max-height:350px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);}
+        .detail-table-wrap::-webkit-scrollbar{width:5px;}
+        .detail-table-wrap::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px;}
+        .detail-table{width:100%;border-collapse:collapse;font-size:0.8rem;font-family:var(--font-mono);}
+        .detail-table thead{position:sticky;top:0;z-index:2;}
+        .detail-table thead th{background:#f8fafc;font-weight:600;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-secondary);padding:8px 10px;text-align:left;border-bottom:2px solid #e2e8f0;font-family:var(--font-sans);}
+        .detail-table td{padding:6px 10px;border-bottom:1px solid #f1f5f9;white-space:nowrap;}
+        .detail-table tbody tr{transition:background 0.15s ease;cursor:pointer;}
+        .detail-table tbody tr:hover{background:#f0f9ff;}
+        .detail-table .codon-cell{font-weight:600;letter-spacing:0.05em;color:#334155;}
+        .detail-table .highlight-start{background:#ecfdf5;border-left:3px solid #10b981;}
+        .detail-table .highlight-stop{background:#fef2f2;border-left:3px solid #ef4444;}
+        .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.68rem;font-weight:600;letter-spacing:0.03em;font-family:var(--font-sans);}
+        .tag-start{background:#d1fae5;color:#065f46;}
+        .tag-stop{background:#fee2e2;color:#991b1b;}
+        .clickable-aa{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;text-decoration-color:#94a3b8;transition:color var(--transition);}
+        .clickable-aa:hover{color:var(--accent);text-decoration-color:var(--accent);}
+        .stats-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+        .stat-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:20px;font-size:0.74rem;font-weight:500;color:#475569;font-family:var(--font-mono);white-space:nowrap;}
+        .stat-pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+        .ops-panel{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+        .ops-panel .ops-group{display:flex;flex-direction:column;gap:3px;min-width:60px;}
+        .ops-panel .ops-group label{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);white-space:nowrap;}
+        .ops-panel select,.ops-panel input{padding:7px 10px;font-family:var(--font-mono);font-size:0.82rem;border:1.5px solid var(--border);border-radius:6px;background:#fafbfc;color:var(--text);outline:none;transition:all var(--transition);}
+        .ops-panel select:focus,.ops-panel input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(139,92,246,0.08);}
+        .ops-panel input[type="number"]{width:75px;}
+        .ops-panel input[type="text"]{min-width:120px;flex:1;}
+        .ops-result-mini{font-size:0.78rem;font-family:var(--font-mono);color:var(--text-secondary);padding:4px 0;max-width:100%;overflow-x:auto;white-space:nowrap;}
+        .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;}
+        .compare-card{background:#fafcfd;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;transition:all var(--transition);}
+        .compare-card.original-card{border-left:4px solid #94a3b8;}
+        .compare-card.modified-card{border-left:4px solid var(--purple);}
+        .compare-card .compare-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+        .compare-card .compare-label .dot-indicator{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+        .compare-card.original-card .dot-indicator{background:#94a3b8;}
+        .compare-card.modified-card .dot-indicator{background:var(--purple);}
+        .compare-card .aa-chips-row{min-height:28px;}
+        .compare-card .no-result{color:#c0c8d4;font-style:italic;font-size:0.78rem;padding:6px 0;}
+        .collapsible-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-weight:600;font-size:0.88rem;color:var(--text);padding:6px 0;transition:color var(--transition);}
+        .collapsible-toggle:hover{color:var(--accent);}
+        .collapsible-toggle .arrow{transition:transform 0.3s ease;font-size:0.7rem;color:var(--text-muted);}
+        .collapsible-toggle.open .arrow{transform:rotate(90deg);}
+        .collapsible-content{overflow:hidden;max-height:0;transition:max-height 0.4s ease,padding 0.3s ease;padding-top:0;}
+        .collapsible-content.expanded{max-height:2000px;padding-top:10px;}
+        .codon-ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;}
+        .codon-ref-card{background:#fafcfd;border:1px solid #e8ecf1;border-radius:8px;padding:9px 11px;font-size:0.78rem;transition:all var(--transition);cursor:pointer;}
+        .codon-ref-card:hover{border-color:#c0c8d4;box-shadow:var(--shadow-sm);background:#fff;}
+        .codon-ref-card .aa-header{font-weight:700;font-size:0.82rem;margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+        .codon-ref-card .aa-header .aa-letter{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-weight:700;font-size:0.75rem;font-family:var(--font-mono);}
+        .codon-ref-card .codons-list{color:#64748b;font-family:var(--font-mono);font-size:0.72rem;letter-spacing:0.03em;word-break:break-all;}
+        .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeInOverlay 0.25s ease;padding:20px;}
+        @keyframes fadeInOverlay{from{opacity:0;}to{opacity:1;}}
+        .modal-dialog{background:#fff;border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);max-width:600px;width:100%;max-height:85vh;overflow-y:auto;animation:scaleIn 0.3s cubic-bezier(0.175,0.885,0.32,1.275);position:relative;}
+        @keyframes scaleIn{from{opacity:0;transform:scale(0.9) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+        .modal-dialog::-webkit-scrollbar{width:5px;}
+        .modal-dialog::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px;}
+        .modal-header-bar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;position:sticky;top:0;background:#fff;z-index:3;border-bottom:1px solid #f1f5f9;}
+        .modal-close-btn{width:32px;height:32px;border-radius:50%;border:none;background:#f1f5f9;cursor:pointer;font-size:1rem;color:#64748b;display:flex;align-items:center;justify-content:center;transition:all var(--transition);flex-shrink:0;}
+        .modal-close-btn:hover{background:#e2e8f0;color:#1e293b;}
+        .modal-body{padding:14px 20px 22px;}
+        .modal-aa-hero{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+        .modal-aa-big-letter{width:58px;height:58px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;font-family:var(--font-mono);flex-shrink:0;border:3px solid transparent;}
+        .modal-aa-title h3{font-size:1.2rem;font-weight:700;color:#0f172a;}
+        .modal-aa-title .subtitle-en{font-size:0.82rem;color:var(--text-muted);font-style:italic;}
+        .modal-aa-image{width:100%;max-width:200px;margin:8px auto;display:block;border-radius:10px;border:1px solid #e2e8f0;background:#fff;object-fit:contain;}
+        .modal-image-placeholder{display:none;text-align:center;padding:16px;background:#f8fafc;border-radius:10px;color:#94a3b8;font-size:0.8rem;margin:8px 0;}
+        .modal-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px;}
+        .modal-info-item{background:#f8fafc;border-radius:7px;padding:8px 10px;font-size:0.78rem;}
+        .modal-info-item .info-label{font-size:0.66rem;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;font-weight:600;margin-bottom:1px;}
+        .modal-info-item .info-value{font-weight:600;color:#1e293b;}
+        .modal-description{background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:12px 14px;font-size:0.82rem;line-height:1.65;color:#78350f;margin-bottom:10px;}
+        .modal-description strong{color:#92400e;}
+        .modal-codons-section{margin-top:6px;}
+        .modal-codons-section .section-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;font-weight:600;margin-bottom:5px;}
+        .modal-codon-tags{display:flex;flex-wrap:wrap;gap:5px;}
+        .modal-codon-tag{display:inline-block;padding:4px 9px;background:#f1f5f9;border-radius:4px;font-family:var(--font-mono);font-size:0.76rem;font-weight:600;color:#475569;letter-spacing:0.04em;border:1px solid #e2e8f0;}
+        .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:#1e293b;color:#fff;padding:10px 20px;border-radius:24px;font-size:0.82rem;font-weight:500;z-index:300;pointer-events:none;transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:0 8px 24px rgba(0,0,0,0.2);}
+        .toast.show{transform:translateX(-50%) translateY(0);}
+        @media (max-width:700px){
+            .compare-grid{grid-template-columns:1fr;}
+            .app-container{padding:10px 8px 30px;}
+            .card{padding:14px 12px;border-radius:var(--radius);}
+            .header h1{font-size:1.3rem;}
+            .ops-panel{gap:6px;}
+            .ops-panel input[type="number"]{width:55px;}
+            .ops-panel input[type="text"]{min-width:80px;}
+            .aa-chip{width:26px;height:26px;font-size:0.72rem;border-radius:5px;}
+            .detail-table{font-size:0.7rem;}
+            .codon-ref-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px;}
+            textarea{min-height:90px;font-size:0.78rem;}
+            .modal-dialog{max-width:95vw;border-radius:var(--radius-lg);}
+            .modal-info-grid{grid-template-columns:1fr;}
+            .modal-body{padding:10px 12px 16px;}
+            .seq-codon-block{padding:3px 5px;font-size:0.68rem;}
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <header class="header">
+        <div class="icon-row"><div class="dna-icon">🧬</div></div>
+        <h1>DNA 密码子翻译工具</h1>
+        <p class="subtitle">输入序列 · 翻译氨基酸 · 插入/剔除/倒位 · 实时对比</p>
+    </header>
+
+    <div class="card">
+        <div class="card-header"><span class="badge input">></span><h2>输入 DNA 序列</h2><span class="hint">支持 A/T/C/G</span></div>
+        <div class="textarea-wrapper">
+            <textarea id="dnaInput" placeholder="在此粘贴 DNA 序列...&#10;例如：ATGGCCGTGACCTGATAGCCGGA" aria-label="DNA序列输入框"></textarea>
+            <span class="char-count" id="charCount">0 个有效碱基</span>
+        </div>
+        <div class="controls-row">
+            <label class="toggle-switch" title="必须包含起始密码子ATG才进行翻译"><input type="checkbox" id="strictModeCheckbox" checked><span class="toggle-track"></span><span class="toggle-label-text">严格模式</span></label>
+            <span class="label-text" id="frameLabel">偏移：</span>
+            <div class="segmented" id="readingFrameGroup"><button data-offset="0" class="active">+1</button><button data-offset="1">+2</button><button data-offset="2">+3</button></div>
+            <div class="spacer"></div>
+            <button class="btn btn-outline btn-sm" id="btnClear">✕ 清空</button>
+            <button class="btn btn-outline btn-sm" id="btnExample">📋 示例</button>
+            <button class="btn btn-primary" id="btnTranslate">🔬 翻译</button>
+        </div>
+        <div id="inputAlert"></div>
+        <div class="seq-highlight-container" id="seqHighlightContainer"><div class="seq-title">🔎 序列预览（3碱基/格）</div><div class="seq-highlight-row" id="seqHighlightRow"></div></div>
+    </div>
+
+    <div class="card" id="opsCard" style="display:none;">
+        <div class="card-header"><span class="badge ops">✂</span><h2>序列操作</h2><span class="hint">位置从1开始</span></div>
+        <div class="ops-panel">
+            <div class="ops-group"><label>操作</label><select id="opsType"><option value="insert">插入</option><option value="delete">剔除</option><option value="invert">倒位</option></select></div>
+            <div class="ops-group"><label id="opsPosLabel">插入位置</label><input type="number" id="opsPosStart" value="1" min="1" step="1"></div>
+            <div class="ops-group" id="opsPosEndGroup" style="display:none;"><label>结束位置</label><input type="number" id="opsPosEnd" value="1" min="1" step="1"></div>
+            <div class="ops-group" id="opsSeqGroup"><label>插入序列</label><input type="text" id="opsInsertSeq" placeholder="ATCG..."></div>
+            <button class="btn btn-purple btn-sm" id="btnApplyOps">⚡ 应用</button>
+            <button class="btn btn-outline btn-sm" id="btnResetOps">↺ 重置</button>
+        </div>
+        <div id="opsAlert"></div>
+        <div class="ops-result-mini" id="opsResultMini" style="display:none;"></div>
+    </div>
+
+    <div class="card result-section" id="compareCard" style="display:none;">
+        <div class="card-header"><span class="badge compare">⇆</span><h2>翻译结果对比</h2><span class="hint" id="readingFrameLabel"></span></div>
+        <div class="compare-grid">
+            <div class="compare-card original-card"><div class="compare-label"><span class="dot-indicator"></span>原始序列</div><div class="aa-chips-row" id="origAaChipsRow"></div><div class="stats-row" id="origStatsRow"></div><div class="no-result" id="origNoResult" style="display:none;">无结果</div></div>
+            <div class="compare-card modified-card"><div class="compare-label"><span class="dot-indicator"></span>操作后序列</div><div class="aa-chips-row" id="modAaChipsRow"></div><div class="stats-row" id="modStatsRow"></div><div class="no-result" id="modNoResult" style="display:none;">无结果</div></div>
+        </div>
+        <div id="compareAlert"></div>
+    </div>
+
+    <div class="card result-section" id="resultCard" style="display:none;">
+        <div class="card-header"><span class="badge result">📋</span><h2>当前序列密码子详情</h2><button class="btn btn-ghost btn-sm" id="btnCopyAA">📋 复制氨基酸</button></div>
+        <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>位置</th><th>密码子</th><th>氨基酸</th><th>缩写</th><th>单字母</th><th>化学性质</th><th>标记</th></tr></thead><tbody id="detailTableBody"></tbody></table></div>
+        <div id="resultAlert"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><span class="badge table">📖</span><h2>遗传密码子参考表</h2><span class="hint">点击查看详情</span></div>
+        <div class="collapsible-toggle" id="toggleCodonTable" role="button" tabindex="0"><span class="arrow">▶</span> 展开密码子表</div>
+        <div class="collapsible-content" id="codonTableContent"><div class="codon-ref-grid" id="codonRefGrid"></div><div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;font-size:0.72rem;color:var(--text-muted);"><span>🟡疏水</span><span>🟢极性</span><span>🔵碱性</span><span>🔴酸性</span><span>🟠芳香</span><span>🟣特殊</span><span>⚪终止</span></div></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="aaModalOverlay" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-header-bar"><span style="font-weight:700;color:#64748b;">🔬 氨基酸详情</span><button class="modal-close-btn" id="modalCloseBtn">✕</button></div>
+        <div class="modal-body" id="modalBodyContent"></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+    const codonTable = {
+        'TTT':{fullName:'苯丙氨酸',threeLetter:'Phe',oneLetter:'F',category:'aromatic',categoryCN:'芳香族/疏水'},
+        'TTC':{fullName:'苯丙氨酸',threeLetter:'Phe',oneLetter:'F',category:'aromatic',categoryCN:'芳香族/疏水'},
+        'TTA':{fullName:'亮氨酸',threeLetter:'Leu',oneLetter:'L',category:'hydrophobic',categoryCN:'疏水性'},
+        'TTG':{fullName:'亮氨酸',threeLetter:'Leu',oneLetter:'L',category:'hydrophobic',categoryCN:'疏水性'},
+        'CTT':{fullName:'亮氨酸',threeLetter:'Leu',oneLetter:'L',category:'hydrophobic',categoryCN:'疏水性'},
+        'CTC':{fullName:'亮氨酸',threeLetter:'Leu',oneLetter:'L',category:'hydrophobic',categoryCN:'疏水性'},
+        'CTA':{fullName:'亮氨酸',threeLetter:'Leu',oneLetter:'L',category:'hydrophobic',categoryCN:'疏水性'},
+        'CTG':{fullName:'亮氨酸',threeLetter:'Leu',oneLetter:'L',category:'hydrophobic',categoryCN:'疏水性'},
+        'ATT':{fullName:'异亮氨酸',threeLetter:'Ile',oneLetter:'I',category:'hydrophobic',categoryCN:'疏水性'},
+        'ATC':{fullName:'异亮氨酸',threeLetter:'Ile',oneLetter:'I',category:'hydrophobic',categoryCN:'疏水性'},
+        'ATA':{fullName:'异亮氨酸',threeLetter:'Ile',oneLetter:'I',category:'hydrophobic',categoryCN:'疏水性'},
+        'ATG':{fullName:'甲硫氨酸',threeLetter:'Met',oneLetter:'M',category:'special',categoryCN:'起始/特殊',isStart:true},
+        'GTT':{fullName:'缬氨酸',threeLetter:'Val',oneLetter:'V',category:'hydrophobic',categoryCN:'疏水性'},
+        'GTC':{fullName:'缬氨酸',threeLetter:'Val',oneLetter:'V',category:'hydrophobic',categoryCN:'疏水性'},
+        'GTA':{fullName:'缬氨酸',threeLetter:'Val',oneLetter:'V',category:'hydrophobic',categoryCN:'疏水性'},
+        'GTG':{fullName:'缬氨酸',threeLetter:'Val',oneLetter:'V',category:'hydrophobic',categoryCN:'疏水性'},
+        'TCT':{fullName:'丝氨酸',threeLetter:'Ser',oneLetter:'S',category:'polar',categoryCN:'极性不带电'},
+        'TCC':{fullName:'丝氨酸',threeLetter:'Ser',oneLetter:'S',category:'polar',categoryCN:'极性不带电'},
+        'TCA':{fullName:'丝氨酸',threeLetter:'Ser',oneLetter:'S',category:'polar',categoryCN:'极性不带电'},
+        'TCG':{fullName:'丝氨酸',threeLetter:'Ser',oneLetter:'S',category:'polar',categoryCN:'极性不带电'},
+        'AGT':{fullName:'丝氨酸',threeLetter:'Ser',oneLetter:'S',category:'polar',categoryCN:'极性不带电'},
+        'AGC':{fullName:'丝氨酸',threeLetter:'Ser',oneLetter:'S',category:'polar',categoryCN:'极性不带电'},
+        'CCT':{fullName:'脯氨酸',threeLetter:'Pro',oneLetter:'P',category:'special',categoryCN:'特殊（亚氨基）'},
+        'CCC':{fullName:'脯氨酸',threeLetter:'Pro',oneLetter:'P',category:'special',categoryCN:'特殊（亚氨基）'},
+        'CCA':{fullName:'脯氨酸',threeLetter:'Pro',oneLetter:'P',category:'special',categoryCN:'特殊（亚氨基）'},
+        'CCG':{fullName:'脯氨酸',threeLetter:'Pro',oneLetter:'P',category:'special',categoryCN:'特殊（亚氨基）'},
+        'ACT':{fullName:'苏氨酸',threeLetter:'Thr',oneLetter:'T',category:'polar',categoryCN:'极性不带电'},
+        'ACC':{fullName:'苏氨酸',threeLetter:'Thr',oneLetter:'T',category:'polar',categoryCN:'极性不带电'},
+        'ACA':{fullName:'苏氨酸',threeLetter:'Thr',oneLetter:'T',category:'polar',categoryCN:'极性不带电'},
+        'ACG':{fullName:'苏氨酸',threeLetter:'Thr',oneLetter:'T',category:'polar',categoryCN:'极性不带电'},
+        'GCT':{fullName:'丙氨酸',threeLetter:'Ala',oneLetter:'A',category:'hydrophobic',categoryCN:'疏水性'},
+        'GCC':{fullName:'丙氨酸',threeLetter:'Ala',oneLetter:'A',category:'hydrophobic',categoryCN:'疏水性'},
+        'GCA':{fullName:'丙氨酸',threeLetter:'Ala',oneLetter:'A',category:'hydrophobic',categoryCN:'疏水性'},
+        'GCG':{fullName:'丙氨酸',threeLetter:'Ala',oneLetter:'A',category:'hydrophobic',categoryCN:'疏水性'},
+        'TAT':{fullName:'酪氨酸',threeLetter:'Tyr',oneLetter:'Y',category:'aromatic',categoryCN:'芳香族'},
+        'TAC':{fullName:'酪氨酸',threeLetter:'Tyr',oneLetter:'Y',category:'aromatic',categoryCN:'芳香族'},
+        'TAA':{fullName:'终止密码子',threeLetter:'Stop',oneLetter:'*',category:'stop',categoryCN:'终止',isStop:true},
+        'TAG':{fullName:'终止密码子',threeLetter:'Stop',oneLetter:'*',category:'stop',categoryCN:'终止',isStop:true},
+        'TGA':{fullName:'终止密码子',threeLetter:'Stop',oneLetter:'*',category:'stop',categoryCN:'终止',isStop:true},
+        'CAT':{fullName:'组氨酸',threeLetter:'His',oneLetter:'H',category:'positive',categoryCN:'碱性（+）'},
+        'CAC':{fullName:'组氨酸',threeLetter:'His',oneLetter:'H',category:'positive',categoryCN:'碱性（+）'},
+        'CAA':{fullName:'谷氨酰胺',threeLetter:'Gln',oneLetter:'Q',category:'polar',categoryCN:'极性不带电'},
+        'CAG':{fullName:'谷氨酰胺',threeLetter:'Gln',oneLetter:'Q',category:'polar',categoryCN:'极性不带电'},
+        'AAT':{fullName:'天冬酰胺',threeLetter:'Asn',oneLetter:'N',category:'polar',categoryCN:'极性不带电'},
+        'AAC':{fullName:'天冬酰胺',threeLetter:'Asn',oneLetter:'N',category:'polar',categoryCN:'极性不带电'},
+        'AAA':{fullName:'赖氨酸',threeLetter:'Lys',oneLetter:'K',category:'positive',categoryCN:'碱性（+）'},
+        'AAG':{fullName:'赖氨酸',threeLetter:'Lys',oneLetter:'K',category:'positive',categoryCN:'碱性（+）'},
+        'GAT':{fullName:'天冬氨酸',threeLetter:'Asp',oneLetter:'D',category:'negative',categoryCN:'酸性（−）'},
+        'GAC':{fullName:'天冬氨酸',threeLetter:'Asp',oneLetter:'D',category:'negative',categoryCN:'酸性（−）'},
+        'GAA':{fullName:'谷氨酸',threeLetter:'Glu',oneLetter:'E',category:'negative',categoryCN:'酸性（−）'},
+        'GAG':{fullName:'谷氨酸',threeLetter:'Glu',oneLetter:'E',category:'negative',categoryCN:'酸性（−）'},
+        'TGT':{fullName:'半胱氨酸',threeLetter:'Cys',oneLetter:'C',category:'special',categoryCN:'特殊（含硫）'},
+        'TGC':{fullName:'半胱氨酸',threeLetter:'Cys',oneLetter:'C',category:'special',categoryCN:'特殊（含硫）'},
+        'TGG':{fullName:'色氨酸',threeLetter:'Trp',oneLetter:'W',category:'aromatic',categoryCN:'芳香族'},
+        'CGT':{fullName:'精氨酸',threeLetter:'Arg',oneLetter:'R',category:'positive',categoryCN:'碱性（+）'},
+        'CGC':{fullName:'精氨酸',threeLetter:'Arg',oneLetter:'R',category:'positive',categoryCN:'碱性（+）'},
+        'CGA':{fullName:'精氨酸',threeLetter:'Arg',oneLetter:'R',category:'positive',categoryCN:'碱性（+）'},
+        'CGG':{fullName:'精氨酸',threeLetter:'Arg',oneLetter:'R',category:'positive',categoryCN:'碱性（+）'},
+        'AGA':{fullName:'精氨酸',threeLetter:'Arg',oneLetter:'R',category:'positive',categoryCN:'碱性（+）'},
+        'AGG':{fullName:'精氨酸',threeLetter:'Arg',oneLetter:'R',category:'positive',categoryCN:'碱性（+）'},
+        'GGT':{fullName:'甘氨酸',threeLetter:'Gly',oneLetter:'G',category:'special',categoryCN:'特殊（柔性）'},
+        'GGC':{fullName:'甘氨酸',threeLetter:'Gly',oneLetter:'G',category:'special',categoryCN:'特殊（柔性）'},
+        'GGA':{fullName:'甘氨酸',threeLetter:'Gly',oneLetter:'G',category:'special',categoryCN:'特殊（柔性）'},
+        'GGG':{fullName:'甘氨酸',threeLetter:'Gly',oneLetter:'G',category:'special',categoryCN:'特殊（柔性）'},
+    };
+    const aaDetailsData = {
+        'F':{nameCN:'苯丙氨酸',nameEN:'Phenylalanine',threeLetter:'Phe',oneLetter:'F',category:'aromatic',categoryCN:'芳香族/疏水',molecularWeight:'165.19',isoelectricPoint:'5.48',polarity:'非极性',hydropathy:'疏水',structure:'含苯环侧链，必需氨基酸。',description:'苯丙氨酸是人体<strong>必需氨基酸</strong>，侧链含苯环，具有强疏水性和紫外吸收。是酪氨酸和多种神经递质的前体。',codons:['TTT','TTC'],imageSrc:'Phe.png'},
+        'L':{nameCN:'亮氨酸',nameEN:'Leucine',threeLetter:'Leu',oneLetter:'L',category:'hydrophobic',categoryCN:'疏水性',molecularWeight:'131.17',isoelectricPoint:'5.98',polarity:'非极性',hydropathy:'疏水',structure:'含异丁基侧链，BCAA之一。',description:'亮氨酸是<strong>必需氨基酸</strong>，属支链氨基酸。激活mTOR通路促进肌肉蛋白合成。',codons:['TTA','TTG','CTT','CTC','CTA','CTG'],imageSrc:'Leu.png'},
+        'I':{nameCN:'异亮氨酸',nameEN:'Isoleucine',threeLetter:'Ile',oneLetter:'I',category:'hydrophobic',categoryCN:'疏水性',molecularWeight:'131.17',isoelectricPoint:'6.02',polarity:'非极性',hydropathy:'疏水',structure:'含仲丁基侧链，BCAA之一。',description:'异亮氨酸是<strong>必需氨基酸</strong>，属支链氨基酸，参与肌肉代谢和能量调节。',codons:['ATT','ATC','ATA'],imageSrc:'Ile.png'},
+        'M':{nameCN:'甲硫氨酸',nameEN:'Methionine',threeLetter:'Met',oneLetter:'M',category:'special',categoryCN:'起始/特殊（含硫）',molecularWeight:'149.21',isoelectricPoint:'5.74',polarity:'非极性',hydropathy:'疏水',structure:'含硫甲基侧链，翻译起始氨基酸。',description:'甲硫氨酸是<strong>必需氨基酸</strong>，所有蛋白质合成的起始氨基酸。参与甲基化反应，是SAM的前体。',codons:['ATG'],isStart:true,imageSrc:'Met.png'},
+        'V':{nameCN:'缬氨酸',nameEN:'Valine',threeLetter:'Val',oneLetter:'V',category:'hydrophobic',categoryCN:'疏水性',molecularWeight:'117.15',isoelectricPoint:'5.96',polarity:'非极性',hydropathy:'疏水',structure:'含异丙基侧链，BCAA之一。',description:'缬氨酸是<strong>必需氨基酸</strong>，属支链氨基酸，参与能量代谢和组织修复。',codons:['GTT','GTC','GTA','GTG'],imageSrc:'Val.png'},
+        'S':{nameCN:'丝氨酸',nameEN:'Serine',threeLetter:'Ser',oneLetter:'S',category:'polar',categoryCN:'极性不带电',molecularWeight:'105.09',isoelectricPoint:'5.68',polarity:'极性',hydropathy:'亲水',structure:'含羟甲基侧链，磷酸化关键位点。',description:'丝氨酸是<strong>非必需氨基酸</strong>，侧链羟基使其亲水。是蛋白质磷酸化的主要靶点。',codons:['TCT','TCC','TCA','TCG','AGT','AGC'],imageSrc:'Ser.png'},
+        'P':{nameCN:'脯氨酸',nameEN:'Proline',threeLetter:'Pro',oneLetter:'P',category:'special',categoryCN:'特殊（亚氨基）',molecularWeight:'115.13',isoelectricPoint:'6.30',polarity:'非极性',hydropathy:'疏水',structure:'侧链与主链形成环状结构，α-螺旋破坏者。',description:'脯氨酸是独特的亚氨基酸，环状结构限制主链旋转。胶原蛋白中含量极高。',codons:['CCT','CCC','CCA','CCG'],imageSrc:'Pro.png'},
+        'T':{nameCN:'苏氨酸',nameEN:'Threonine',threeLetter:'Thr',oneLetter:'T',category:'polar',categoryCN:'极性不带电',molecularWeight:'119.12',isoelectricPoint:'5.60',polarity:'极性',hydropathy:'亲水',structure:'含羟乙基侧链，必需氨基酸。',description:'苏氨酸是<strong>必需氨基酸</strong>，参与蛋白质糖基化和免疫球蛋白合成。',codons:['ACT','ACC','ACA','ACG'],imageSrc:'Thr.png'},
+        'A':{nameCN:'丙氨酸',nameEN:'Alanine',threeLetter:'Ala',oneLetter:'A',category:'hydrophobic',categoryCN:'疏水性',molecularWeight:'89.09',isoelectricPoint:'6.00',polarity:'非极性',hydropathy:'疏水',structure:'最简单的氨基酸之一，侧链为甲基。',description:'丙氨酸结构简单，在葡萄糖-丙氨酸循环中起关键作用。常用于突变扫描实验。',codons:['GCT','GCC','GCA','GCG'],imageSrc:'Ala.png'},
+        'Y':{nameCN:'酪氨酸',nameEN:'Tyrosine',threeLetter:'Tyr',oneLetter:'Y',category:'aromatic',categoryCN:'芳香族',molecularWeight:'181.19',isoelectricPoint:'5.66',polarity:'极性',hydropathy:'疏水/亲水',structure:'含对羟基苯环，磷酸化重要位点。',description:'酪氨酸含酚羟基，是蛋白质磷酸化关键位点。为多巴胺等神经递质前体。',codons:['TAT','TAC'],imageSrc:'Tyr.png'},
+        '*':{nameCN:'终止密码子',nameEN:'Stop Codon',threeLetter:'Stop',oneLetter:'*',category:'stop',categoryCN:'翻译终止信号',molecularWeight:'—',isoelectricPoint:'—',polarity:'—',hydropathy:'—',structure:'TAA/TAG/TGA。',description:'<strong>终止密码子</strong>不编码氨基酸，发出翻译终止信号。三种：TAA（赭石）、TAG（琥珀）、TGA（蛋白石）。',codons:['TAA','TAG','TGA'],isStop:true,imageSrc:''},
+        'H':{nameCN:'组氨酸',nameEN:'Histidine',threeLetter:'His',oneLetter:'H',category:'positive',categoryCN:'碱性（+）',molecularWeight:'155.16',isoelectricPoint:'7.59',polarity:'极性',hydropathy:'亲水',structure:'含咪唑环，pKa≈6.0。',description:'组氨酸侧链咪唑环在生理pH附近可切换质子化状态，常出现在酶活性中心。半必需氨基酸。',codons:['CAT','CAC'],imageSrc:'His.png'},
+        'Q':{nameCN:'谷氨酰胺',nameEN:'Glutamine',threeLetter:'Gln',oneLetter:'Q',category:'polar',categoryCN:'极性不带电',molecularWeight:'146.14',isoelectricPoint:'5.65',polarity:'极性',hydropathy:'亲水',structure:'含酰胺基侧链，氮转运载体。',description:'谷氨酰胺是人体最丰富的游离氨基酸，参与氮代谢和氨解毒。快速分裂细胞的能量来源。',codons:['CAA','CAG'],imageSrc:'Gln.png'},
+        'N':{nameCN:'天冬酰胺',nameEN:'Asparagine',threeLetter:'Asn',oneLetter:'N',category:'polar',categoryCN:'极性不带电',molecularWeight:'132.12',isoelectricPoint:'5.41',polarity:'极性',hydropathy:'亲水',structure:'含酰胺基侧链，N-糖基化位点。',description:'天冬酰胺侧链酰胺基团是N-糖基化修饰的主要靶点。可由天冬氨酸转化而来。',codons:['AAT','AAC'],imageSrc:'Asn.png'},
+        'K':{nameCN:'赖氨酸',nameEN:'Lysine',threeLetter:'Lys',oneLetter:'K',category:'positive',categoryCN:'碱性（+）',molecularWeight:'146.19',isoelectricPoint:'9.74',polarity:'极性',hydropathy:'亲水',structure:'含长链ε-氨基，必需氨基酸。',description:'赖氨酸是必需氨基酸，ε-氨基是泛素化修饰位点。参与胶原蛋白交联。',codons:['AAA','AAG'],imageSrc:'Lys.png'},
+        'D':{nameCN:'天冬氨酸',nameEN:'Aspartic Acid',threeLetter:'Asp',oneLetter:'D',category:'negative',categoryCN:'酸性（−）',molecularWeight:'133.10',isoelectricPoint:'2.77',polarity:'极性',hydropathy:'亲水',structure:'含羧基侧链，生理条件下带负电。',description:'天冬氨酸是酸性氨基酸，侧链羧基参与酸碱催化。常出现在酶活性中心。',codons:['GAT','GAC'],imageSrc:'Asp.png'},
+        'E':{nameCN:'谷氨酸',nameEN:'Glutamic Acid',threeLetter:'Glu',oneLetter:'E',category:'negative',categoryCN:'酸性（−）',molecularWeight:'147.13',isoelectricPoint:'3.22',polarity:'极性',hydropathy:'亲水',structure:'含羧基侧链，主要兴奋性神经递质。',description:'谷氨酸是中枢神经系统主要的兴奋性神经递质，在学习记忆中起核心作用。',codons:['GAA','GAG'],imageSrc:'Glu.png'},
+        'C':{nameCN:'半胱氨酸',nameEN:'Cysteine',threeLetter:'Cys',oneLetter:'C',category:'special',categoryCN:'特殊（含硫，二硫键）',molecularWeight:'121.16',isoelectricPoint:'5.07',polarity:'极性',hydropathy:'可变',structure:'含巯基（-SH），可形成二硫键。',description:'半胱氨酸的巯基可形成二硫键，稳定蛋白质结构。是谷胱甘肽的组成成分。',codons:['TGT','TGC'],imageSrc:'Cys.png'},
+        'W':{nameCN:'色氨酸',nameEN:'Tryptophan',threeLetter:'Trp',oneLetter:'W',category:'aromatic',categoryCN:'芳香族',molecularWeight:'204.23',isoelectricPoint:'5.89',polarity:'非极性',hydropathy:'疏水',structure:'含吲哚环，最大侧链之一。',description:'色氨酸是必需氨基酸，具有吲哚环。是血清素和褪黑素的前体。仅由一个密码子TGG编码。',codons:['TGG'],imageSrc:'Trp.png'},
+        'R':{nameCN:'精氨酸',nameEN:'Arginine',threeLetter:'Arg',oneLetter:'R',category:'positive',categoryCN:'碱性（+）',molecularWeight:'174.20',isoelectricPoint:'10.76',polarity:'极性',hydropathy:'亲水',structure:'含胍基，碱性最强。',description:'精氨酸侧链胍基始终带正电。是一氧化氮（NO）前体，参与尿素循环。',codons:['CGT','CGC','CGA','CGG','AGA','AGG'],imageSrc:'Arg.png'},
+        'G':{nameCN:'甘氨酸',nameEN:'Glycine',threeLetter:'Gly',oneLetter:'G',category:'special',categoryCN:'特殊（最小，柔性最强）',molecularWeight:'75.07',isoelectricPoint:'5.97',polarity:'非极性',hydropathy:'中性',structure:'最简单的氨基酸，侧链仅为氢。',description:'甘氨酸是最小、唯一非手性氨基酸。赋予蛋白质极大柔性，是抑制性神经递质。',codons:['GGT','GGC','GGA','GGG'],imageSrc:'Gly.png'}
+    };
+    const aaGroups = [
+        {name:'苯丙氨酸',abbr:'Phe',letter:'F',category:'aromatic',catCN:'芳香族/疏水',codons:['TTT','TTC']},
+        {name:'亮氨酸',abbr:'Leu',letter:'L',category:'hydrophobic',catCN:'疏水性',codons:['TTA','TTG','CTT','CTC','CTA','CTG']},
+        {name:'异亮氨酸',abbr:'Ile',letter:'I',category:'hydrophobic',catCN:'疏水性',codons:['ATT','ATC','ATA']},
+        {name:'甲硫氨酸',abbr:'Met',letter:'M',category:'special',catCN:'起始/特殊',codons:['ATG'],isStart:true},
+        {name:'缬氨酸',abbr:'Val',letter:'V',category:'hydrophobic',catCN:'疏水性',codons:['GTT','GTC','GTA','GTG']},
+        {name:'丝氨酸',abbr:'Ser',letter:'S',category:'polar',catCN:'极性不带电',codons:['TCT','TCC','TCA','TCG','AGT','AGC']},
+        {name:'脯氨酸',abbr:'Pro',letter:'P',category:'special',catCN:'特殊（亚氨基）',codons:['CCT','CCC','CCA','CCG']},
+        {name:'苏氨酸',abbr:'Thr',letter:'T',category:'polar',catCN:'极性不带电',codons:['ACT','ACC','ACA','ACG']},
+        {name:'丙氨酸',abbr:'Ala',letter:'A',category:'hydrophobic',catCN:'疏水性',codons:['GCT','GCC','GCA','GCG']},
+        {name:'酪氨酸',abbr:'Tyr',letter:'Y',category:'aromatic',catCN:'芳香族',codons:['TAT','TAC']},
+        {name:'终止密码子',abbr:'Stop',letter:'*',category:'stop',catCN:'终止',codons:['TAA','TAG','TGA'],isStop:true},
+        {name:'组氨酸',abbr:'His',letter:'H',category:'positive',catCN:'碱性（+）',codons:['CAT','CAC']},
+        {name:'谷氨酰胺',abbr:'Gln',letter:'Q',category:'polar',catCN:'极性不带电',codons:['CAA','CAG']},
+        {name:'天冬酰胺',abbr:'Asn',letter:'N',category:'polar',catCN:'极性不带电',codons:['AAT','AAC']},
+        {name:'赖氨酸',abbr:'Lys',letter:'K',category:'positive',catCN:'碱性（+）',codons:['AAA','AAG']},
+        {name:'天冬氨酸',abbr:'Asp',letter:'D',category:'negative',catCN:'酸性（−）',codons:['GAT','GAC']},
+        {name:'谷氨酸',abbr:'Glu',letter:'E',category:'negative',catCN:'酸性（−）',codons:['GAA','GAG']},
+        {name:'半胱氨酸',abbr:'Cys',letter:'C',category:'special',catCN:'特殊（含硫）',codons:['TGT','TGC']},
+        {name:'色氨酸',abbr:'Trp',letter:'W',category:'aromatic',catCN:'芳香族',codons:['TGG']},
+        {name:'精氨酸',abbr:'Arg',letter:'R',category:'positive',catCN:'碱性（+）',codons:['CGT','CGC','CGA','CGG','AGA','AGG']},
+        {name:'甘氨酸',abbr:'Gly',letter:'G',category:'special',catCN:'特殊（柔性）',codons:['GGT','GGC','GGA','GGG']}
+    ];
+    const categoryClassMap = {hydrophobic:'aa-hydrophobic',polar:'aa-polar',positive:'aa-positive',negative:'aa-negative',aromatic:'aa-aromatic',special:'aa-special',stop:'stop-chip'};
+
+    const $ = id => document.getElementById(id);
+    const dnaInput = $('dnaInput'), charCount = $('charCount'), inputAlert = $('inputAlert'),
+          btnTranslate = $('btnTranslate'), btnClear = $('btnClear'), btnExample = $('btnExample'),
+          btnCopyAA = $('btnCopyAA'), readingFrameLabel = $('readingFrameLabel'),
+          readingFrameGroup = $('readingFrameGroup'), frameLabel = $('frameLabel'),
+          strictModeCheckbox = $('strictModeCheckbox'), seqHighlightContainer = $('seqHighlightContainer'),
+          seqHighlightRow = $('seqHighlightRow'), opsCard = $('opsCard'), opsType = $('opsType'),
+          opsPosStart = $('opsPosStart'), opsPosEnd = $('opsPosEnd'), opsPosEndGroup = $('opsPosEndGroup'),
+          opsSeqGroup = $('opsSeqGroup'), opsInsertSeq = $('opsInsertSeq'), opsPosLabel = $('opsPosLabel'),
+          opsAlert = $('opsAlert'), opsResultMini = $('opsResultMini'), btnApplyOps = $('btnApplyOps'),
+          btnResetOps = $('btnResetOps'), compareCard = $('compareCard'), origAaChipsRow = $('origAaChipsRow'),
+          origStatsRow = $('origStatsRow'), modAaChipsRow = $('modAaChipsRow'), modStatsRow = $('modStatsRow'),
+          origNoResult = $('origNoResult'), modNoResult = $('modNoResult'), compareAlert = $('compareAlert'),
+          resultCard = $('resultCard'), detailTableBody = $('detailTableBody'), resultAlert = $('resultAlert'),
+          toggleCodonTable = $('toggleCodonTable'), codonTableContent = $('codonTableContent'),
+          codonRefGrid = $('codonRefGrid'), toast = $('toast'), aaModalOverlay = $('aaModalOverlay'),
+          modalBodyContent = $('modalBodyContent'), modalCloseBtn = $('modalCloseBtn');
+
+    let currentOffset = 0, isStrictMode = true, originalCleanedSeq = '', currentCleanedSeq = '',
+        originalTranslation = null, currentTranslation = null, hasModification = false;
+
+    function buildCodonRefGrid() {
+        codonRefGrid.innerHTML = '';
+        aaGroups.forEach(g => {
+            const card = document.createElement('div'); card.className = 'codon-ref-card';
+            card.innerHTML = `<div class="aa-header"><span class="aa-letter ${categoryClassMap[g.category]||''}">${g.letter}</span><span>${g.name}</span></div><div class="codons-list">${g.codons.join(' ')}</div>`;
+            card.addEventListener('click', () => openAAModal(g.letter));
+            codonRefGrid.appendChild(card);
+        });
+    }
+    buildCodonRefGrid();
+    toggleCodonTable.addEventListener('click', () => {
+        const open = codonTableContent.classList.toggle('expanded');
+        toggleCodonTable.classList.toggle('open', open);
+        toggleCodonTable.querySelector('.arrow').textContent = open ? '▼' : '▶';
+    });
+    readingFrameGroup.addEventListener('click', e => {
+        const btn = e.target.closest('button'); if (!btn) return;
+        currentOffset = +btn.dataset.offset;
+        readingFrameGroup.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (originalCleanedSeq) performTranslation();
+    });
+    strictModeCheckbox.addEventListener('change', function() {
+        isStrictMode = this.checked;
+        readingFrameGroup.classList.toggle('disabled', isStrictMode);
+        frameLabel.style.opacity = isStrictMode ? '0.45' : '1';
+        if (originalCleanedSeq) performTranslation();
+    });
+    readingFrameGroup.classList.add('disabled'); frameLabel.style.opacity = '0.45';
+    opsType.addEventListener('change', function() {
+        const t = this.value;
+        opsPosEndGroup.style.display = (t==='delete'||t==='invert')?'flex':'none';
+        opsSeqGroup.style.display = t==='insert'?'flex':'none';
+        opsPosLabel.textContent = t==='insert'?'插入位置(之前)':(t==='delete'?'起始位置':'起始位置');
+    });
+    dnaInput.addEventListener('input', () => {
+        const cleaned = cleanSequence(dnaInput.value);
+        charCount.textContent = `${cleaned.length} 个有效碱基`;
+        inputAlert.innerHTML = ''; seqHighlightContainer.classList.remove('visible');
+    });
+    function cleanSequence(raw) {
+        let s = raw.toUpperCase().trim().replace(/U/g,'T');
+        if (s.startsWith('>')) s = s.split(/[\n\r]+/).filter(l => !l.startsWith('>')).join('');
+        return s.replace(/[^ATCG]/g,'');
+    }
+    function translateSequence(seq, offset, strict) {
+        let start = offset, usedStrict = false;
+        if (strict) {
+            const idx = seq.indexOf('ATG'); if (idx === -1) return {error:'no_start_codon', cleanedSeq:seq};
+            start = idx; usedStrict = true;
+        }
+        const results = []; let stopEnc = false, stopPos = -1;
+        for (let i = start; i+3 <= seq.length; i+=3) {
+            const codon = seq.substring(i,i+3), info = codonTable[codon];
+            const entry = {codon, position:i+1, info};
+            if (info) {
+                entry.fullName = info.fullName; entry.threeLetter = info.threeLetter;
+                entry.oneLetter = info.oneLetter; entry.category = info.category;
+                entry.categoryCN = info.categoryCN; entry.isStart = info.isStart||false;
+                entry.isStop = info.isStop||false;
+            } else {
+                entry.fullName='未知'; entry.threeLetter='???'; entry.oneLetter='?';
+                entry.category='stop'; entry.categoryCN='未知'; entry.isStop=false; entry.isStart=false;
+            }
+            results.push(entry);
+            if (strict && entry.isStop) { stopEnc = true; stopPos = i+1; break; }
+        }
+        return {results, totalCodons:results.length, remainingBases:Math.max(0,seq.length-(start+results.length*3)),
+                cleanedSeq:seq, offset:start, usedStrictStart:usedStrict, stopEncountered:stopEnc, stopPosition:stopPos, strictMode:strict};
+    }
+    function performTranslation() {
+        const cleaned = cleanSequence(dnaInput.value);
+        inputAlert.innerHTML = ''; resultAlert.innerHTML = ''; opsAlert.innerHTML = '';
+        if (!cleaned) { inputAlert.innerHTML = '<div class="alert alert-info">💡 请输入DNA序列。</div>'; resetAll(); return; }
+        if (cleaned.length < 3) { inputAlert.innerHTML = '<div class="alert alert-warning">⚠️ 碱基不足3个。</div>'; resetAll(); return; }
+        const translation = translateSequence(cleaned, isStrictMode?0:currentOffset, isStrictMode);
+        if (translation.error) { inputAlert.innerHTML = '<div class="alert alert-error">🚫 未找到起始密码子ATG！</div>'; resetAll(); return; }
+        originalCleanedSeq = cleaned; currentCleanedSeq = cleaned;
+        originalTranslation = JSON.parse(JSON.stringify(translation));
+        currentTranslation = JSON.parse(JSON.stringify(translation));
+        hasModification = false;
+        opsCard.style.display = '';
+        compareCard.style.display = '';
+        renderCompareCards(translation, translation);       // ← 首次翻译隐藏对比卡片
+        resultCard.style.display = '';
+        updateReadingFrameLabel(translation);
+        updateSeqHighlight(translation, false);
+        renderDetailTable(translation);
+        // 不再调用 renderCompareCards，留待操作后由 updateAfterMod 触发
+        updateOpsMini();
+        resultCard.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    function resetAll() { resultCard.style.display='none'; compareCard.style.display='none'; opsCard.style.display='none'; seqHighlightContainer.classList.remove('visible'); originalCleanedSeq=''; currentCleanedSeq=''; originalTranslation=null; currentTranslation=null; }
+    function updateReadingFrameLabel(trans) {
+        const pos = trans.offset+1;
+        readingFrameLabel.textContent = trans.strictMode ? `严格模式·起始密码子ATG 位置${pos}` : `自由模式·偏移+${currentOffset}`;
+    }
+    function updateSeqHighlight(trans, isMod) {
+        const seq = trans.cleanedSeq, start = trans.offset, results = trans.results;
+        let html = '';
+        if (start>0) for (let i=0;i<start;i+=3) html += `<span class="seq-codon-block untranslated${isMod?' modified-zone':''}">${seq.substring(i,Math.min(i+3,seq.length))}</span>`;
+        results.forEach(r => {
+            let cls = 'seq-codon-block translated'; if (r.isStart) cls+=' start-codon'; else if (r.isStop) cls+=' stop-codon';
+            if (isMod) cls+=' modified-zone';
+            html += `<span class="${cls}" title="${r.codon}→${r.fullName}">${r.codon}</span>`;
+        });
+        const used = start+results.length*3;
+        if (trans.remainingBases>0 && !trans.stopEncountered) for (let i=used;i<seq.length;i+=3) html += `<span class="seq-codon-block remaining${isMod?' modified-zone':''}">${seq.substring(i,Math.min(i+3,seq.length))}</span>`;
+        seqHighlightRow.innerHTML = html || '<span style="color:#94a3b8;">无序列</span>';
+        seqHighlightContainer.classList.add('visible');
+    }
+    function renderDetailTable(trans) {
+        detailTableBody.innerHTML = '';
+        trans.results.forEach(r => {
+            const tr = document.createElement('tr');
+            if (r.isStart) tr.className = 'highlight-start'; else if (r.isStop) tr.className = 'highlight-stop';
+            const cls = (r.isStop||r.category==='stop')?'stop-chip':(categoryClassMap[r.category]||'aa-hydrophobic');
+            tr.innerHTML = `<td>${r.position}</td><td class="codon-cell">${r.codon}</td><td class="clickable-aa">${r.fullName}</td><td>${r.threeLetter}</td><td><span class="aa-chip ${cls}" style="width:22px;height:22px;font-size:0.7rem;">${r.isStop?'⏹':r.oneLetter}</span></td><td>${r.categoryCN||''}</td><td>${r.isStart?'<span class="tag tag-start">起始</span>':r.isStop?'<span class="tag tag-stop">终止</span>':''}</td>`;
+            tr.addEventListener('click',()=>openAAModal(r.oneLetter||'*'));
+            detailTableBody.appendChild(tr);
+        });
+    }
+    function renderCompareCards(orig, mod) {
+        if (!orig && !mod) { compareCard.style.display='none'; return; }
+        compareCard.style.display = '';
+        renderSingleCompare(origAaChipsRow, origStatsRow, origNoResult, orig, 'orig');
+        renderSingleCompare(modAaChipsRow, modStatsRow, modNoResult, mod, 'mod');
+        if (orig && mod && hasModification) highlightDiff(orig, mod);
+    }
+    function renderSingleCompare(chipsRow, statsRow, noResult, trans, prefix) {
+        chipsRow.innerHTML = ''; statsRow.innerHTML = '';
+        if (!trans || !trans.results.length) { noResult.style.display='block'; return; }
+        noResult.style.display = 'none';
+        const results = trans.results;
+        results.forEach((r,idx) => {
+            const chip = document.createElement('span');
+            const letter = r.oneLetter||'?';
+            if (r.isStop) { chip.className='aa-chip stop-chip'; chip.textContent='⏹'; }
+            else { chip.className = `aa-chip ${categoryClassMap[r.category]||'aa-hydrophobic'}`; chip.textContent = letter; }
+            chip.title = `${r.codon}→${r.fullName}`;
+            chip.addEventListener('click',()=>openAAModal(letter));
+            chip.dataset.codonIdx = idx;
+            chipsRow.appendChild(chip);
+        });
+        const startCodon = results.find(r=>r.isStart);
+        const startPos = startCodon ? startCodon.position : null;
+        const aaCount = {}; let stopC=0;
+        results.forEach(r=>{ if(r.isStop) stopC++; else if(r.oneLetter) aaCount[r.oneLetter]=(aaCount[r.oneLetter]||0)+1; });
+        statsRow.innerHTML = `<span class="stat-pill"><span class="dot" style="background:#0891b2;"></span>密码子:${results.length}</span><span class="stat-pill"><span class="dot" style="background:#10b981;"></span>种类:${Object.keys(aaCount).length}</span><span class="stat-pill"><span class="dot" style="background:#ef4444;"></span>终止:${stopC}</span>${startPos?`<span class="stat-pill"><span class="dot" style="background:#3b82f6;"></span>起始位置:${startPos}</span>`:''}`;
+    }
+    function alignAASequences(seq1, seq2) {
+        const m = seq1.length, n = seq2.length;
+        const match = 1, mismatch = -1, gap = -1;
+        const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+        for (let i = 1; i <= m; i++) dp[i][0] = i * gap;
+        for (let j = 1; j <= n; j++) dp[0][j] = j * gap;
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                const scoreDiag = dp[i-1][j-1] + (seq1[i-1] === seq2[j-1] ? match : mismatch);
+                const scoreUp = dp[i-1][j] + gap;
+                const scoreLeft = dp[i][j-1] + gap;
+                dp[i][j] = Math.max(scoreDiag, scoreUp, scoreLeft);
+            }
+        }
+        // 回溯
+        const align1 = [], align2 = [];
+        let i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && dp[i][j] === dp[i-1][j-1] + (seq1[i-1] === seq2[j-1] ? match : mismatch)) {
+                align1.push(seq1[i-1]);
+                align2.push(seq2[j-1]);
+                i--; j--;
+            } else if (i > 0 && dp[i][j] === dp[i-1][j] + gap) {
+                align1.push(seq1[i-1]);
+                align2.push('-');
+                i--;
+            } else {
+                align1.push('-');
+                align2.push(seq2[j-1]);
+                j--;
+            }
+        }
+        align1.reverse();
+        align2.reverse();
+        return { align1, align2 };
+    }
+
+    function highlightDiff(orig, mod) {
+        // 移除所有现有高亮
+        [origAaChipsRow, modAaChipsRow].forEach(row => {
+            row.querySelectorAll('.aa-chip').forEach(chip => chip.classList.remove('diff-highlight'));
+        });
+
+        const oRes = orig.results;
+        const mRes = mod.results;
+        const mChips = modAaChipsRow.querySelectorAll('.aa-chip');
+
+        const getAA = r => r.isStop ? '*' : r.oneLetter;
+        const origAAs = oRes.map(getAA);
+        const modAAs = mRes.map(getAA);
+
+        // 全局比对
+        const { align1, align2 } = alignAASequences(origAAs, modAAs);
+
+        // 根据比对结果标记修改后序列的高亮位点
+        const modHighlight = new Array(modAAs.length).fill(false);
+        let modIdx = 0;
+        for (let k = 0; k < align2.length; k++) {
+            const aa2 = align2[k];
+            const aa1 = align1[k];
+            if (aa2 !== '-') {
+                // 插入（aa1 === '-'）或替换（aa1 !== aa2）则高亮
+                if (aa1 === '-' || aa1 !== aa2) {
+                    modHighlight[modIdx] = true;
+                }
+                modIdx++;
+            }
+        }
+
+        // 应用高亮
+        mChips.forEach((chip, j) => {
+            if (j < modHighlight.length && modHighlight[j]) {
+                chip.classList.add('diff-highlight');
+            }
+        });
+}
+    function applySequenceOperation() {
+        if (!originalCleanedSeq) { opsAlert.innerHTML='<div class="alert alert-error">请先翻译原始序列。</div>'; return; }
+        opsAlert.innerHTML = '';
+        const type = opsType.value, seq = currentCleanedSeq, seqLen = seq.length;
+        let posStart = parseInt(opsPosStart.value), posEnd = parseInt(opsPosEnd.value);
+        if (isNaN(posStart) || posStart<1 || posStart>seqLen+1) { opsAlert.innerHTML=`<div class="alert alert-error">起始位置超出1~${seqLen+1}。</div>`; return; }
+        if (type==='delete'||type==='invert') {
+            if (isNaN(posEnd) || posEnd<1 || posEnd>seqLen) { opsAlert.innerHTML=`<div class="alert alert-error">结束位置超出1~${seqLen}。</div>`; return; }
+            if (posStart > posEnd) {
+                [posStart, posEnd] = [posEnd, posStart];
+                opsPosStart.value = posStart; opsPosEnd.value = posEnd;
+                opsAlert.innerHTML += '<div class="alert alert-info">↕️ 起始位置大于结束位置，已自动交换。</div>';
+            }
+        }
+        let newSeq = seq, msg = '';
+        const idx0 = posStart-1;
+        if (type==='insert') {
+            const insertSeq = cleanSequence(opsInsertSeq.value);
+            if (!insertSeq) { opsAlert.innerHTML='<div class="alert alert-error">请输入要插入的序列。</div>'; return; }
+            newSeq = seq.substring(0,idx0) + insertSeq + seq.substring(idx0);
+            msg = `✅ 已在位置${posStart}前插入${insertSeq.length}碱基。`;
+        } else if (type==='delete') {
+            newSeq = seq.substring(0,idx0) + seq.substring(posEnd);
+            msg = `✅ 已剔除位置${posStart}~${posEnd}（共${posEnd-posStart+1}碱基）。`;
+        } else if (type==='invert') {
+            const segment = seq.substring(idx0, posEnd);
+            newSeq = seq.substring(0,idx0) + segment.split('').reverse().join('') + seq.substring(posEnd);
+            msg = `✅ 已倒位${posStart}~${posEnd}（${segment}→${newSeq.substring(idx0,posEnd)}）。`;
+        }
+        opsAlert.innerHTML += `<div class="alert alert-success">${msg}</div>`;
+        if (newSeq.length<3) { opsAlert.innerHTML += '<div class="alert alert-warning">⚠️ 操作后序列不足3碱基。</div>'; currentCleanedSeq=newSeq; currentTranslation=null; hasModification=true; updateAfterMod(); return; }
+        currentCleanedSeq = newSeq;
+        const trans = translateSequence(newSeq, isStrictMode?0:currentOffset, isStrictMode);
+        if (trans.error) { opsAlert.innerHTML += '<div class="alert alert-error">🚫 操作后序列缺少ATG！</div>'; currentTranslation=null; hasModification=true; updateAfterMod(); return; }
+        currentTranslation = trans; hasModification = true;
+        updateAfterMod();
+    }
+    function updateAfterMod() {
+        if (currentTranslation) {
+            updateSeqHighlight(currentTranslation, hasModification);
+            renderDetailTable(currentTranslation);
+            resultCard.style.display = '';
+        } else resultCard.style.display = 'none';
+        renderCompareCards(originalTranslation, currentTranslation);
+        compareCard.style.display = '';
+        updateOpsMini();
+        if (currentTranslation) updateReadingFrameLabel(currentTranslation);
+        compareCard.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    function updateOpsMini() {
+        if (!hasModification && originalCleanedSeq===currentCleanedSeq) { opsResultMini.style.display='none'; return; }
+        opsResultMini.style.display = '';
+        opsResultMini.innerHTML = `<strong>原始：</strong><span style="color:#64748b;">${originalCleanedSeq||'—'}</span> → <strong>当前：</strong><span style="color:#6d28d9;">${currentCleanedSeq||'—'}</span> (${currentCleanedSeq.length}碱基)`;
+    }
+    function resetToOriginal() {
+        if (!originalCleanedSeq) return;
+        currentCleanedSeq = originalCleanedSeq;
+        currentTranslation = originalTranslation ? JSON.parse(JSON.stringify(originalTranslation)) : null;
+        hasModification = false;
+        opsAlert.innerHTML = '<div class="alert alert-info">↺ 已重置为原始序列。</div>';
+        opsInsertSeq.value = ''; opsPosStart.value=1; opsPosEnd.value=1; opsType.value='insert';
+        opsPosEndGroup.style.display='none'; opsSeqGroup.style.display='flex';
+        updateSeqHighlight(currentTranslation, false);
+        renderDetailTable(currentTranslation);
+        resultCard.style.display = '';
+        compareCard.style.display = '';
+        renderCompareCards(originalTranslation, originalTranslation);
+        updateOpsMini();
+        if (currentTranslation) updateReadingFrameLabel(currentTranslation);
+        resultCard.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    function openAAModal(letter) {
+        const d = aaDetailsData[letter];
+        if (!d) { if (letter==='*'||letter==='⏹') { renderModal(aaDetailsData['*']); showModal(); return; } showToast('暂无详情'); return; }
+        renderModal(d); showModal();
+    }
+    function renderModal(d) {
+        const cls = categoryClassMap[d.category]||'aa-hydrophobic', stop = d.isStop||d.category==='stop';
+        const img = d.imageSrc ? `<img class="modal-aa-image" src="./${d.imageSrc}" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><div class="modal-image-placeholder">📷 将${d.imageSrc}放在根目录</div>` : '<div class="modal-image-placeholder" style="display:block;">📷 暂无结构图</div>';
+        modalBodyContent.innerHTML = `<div class="modal-aa-hero"><div class="modal-aa-big-letter ${cls}">${stop?'⏹':d.oneLetter}</div><div><h3>${d.nameCN} <small>${d.oneLetter}</small></h3><div style="color:#94a3b8;font-style:italic;">${d.nameEN} · ${d.threeLetter}</div></div></div>${img}<div class="modal-info-grid"><div><div class="info-label">分类</div><div class="info-value">${d.categoryCN}</div></div><div><div class="info-label">分子量</div><div class="info-value">${d.molecularWeight} g/mol</div></div><div><div class="info-label">等电点</div><div class="info-value">${d.isoelectricPoint}</div></div><div><div class="info-label">极性</div><div class="info-value">${d.polarity}</div></div><div><div class="info-label">亲疏水性</div><div class="info-value">${d.hydropathy}</div></div><div><div class="info-label">结构</div><div class="info-value" style="font-size:0.74rem;">${d.structure}</div></div></div><div class="modal-description">${d.description}</div><div><div class="section-label" style="font-size:0.7rem;color:#94a3b8;">对应密码子</div><div class="modal-codon-tags">${d.codons.map(c=>`<span class="modal-codon-tag">${c}</span>`).join('')}</div></div>`;
+    }
+    function showModal(){aaModalOverlay.style.display='flex';document.body.style.overflow='hidden';}
+    function hideModal(){aaModalOverlay.style.display='none';document.body.style.overflow='';}
+    modalCloseBtn.addEventListener('click',hideModal);
+    aaModalOverlay.addEventListener('click',e=>{if(e.target===aaModalOverlay)hideModal();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&aaModalOverlay.style.display==='flex')hideModal();});
+    btnTranslate.addEventListener('click',performTranslation);
+    dnaInput.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();performTranslation();}});
+    btnClear.addEventListener('click',()=>{dnaInput.value='';charCount.textContent='0个有效碱基';inputAlert.innerHTML='';resetAll();dnaInput.focus();showToast('已清空');});
+    btnExample.addEventListener('click',()=>{dnaInput.value='ATGGCCGTGACCTGATAGCCGGA';charCount.textContent='24个有效碱基';resetAll();if(!isStrictMode){currentOffset=0;readingFrameGroup.querySelectorAll('button').forEach(b=>b.classList.remove('active'));readingFrameGroup.querySelector('[data-offset="0"]').classList.add('active');}showToast('已加载示例');setTimeout(performTranslation,150);});
+    btnApplyOps.addEventListener('click',applySequenceOperation);
+    btnResetOps.addEventListener('click',resetToOriginal);
+    btnCopyAA.addEventListener('click',()=>{if(!currentTranslation?.results.length){showToast('无序列');return;}const seq=currentTranslation.results.map(r=>r.isStop?'*':r.oneLetter).join('');navigator.clipboard?.writeText(seq).catch(()=>{const ta=document.createElement('textarea');ta.value=seq;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});showToast('✅已复制');});
+    let toastTimer; function showToast(m){clearTimeout(toastTimer);toast.textContent=m;toast.classList.add('show');toastTimer=setTimeout(()=>toast.classList.remove('show'),2000);}
+    dnaInput.focus(); charCount.textContent = '0个有效碱基';
+})();
+</script>
+</body>
+</html>
