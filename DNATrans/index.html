@@ -246,8 +246,8 @@
         </div>
         <div class="controls-row">
             <label class="toggle-switch" title="必须包含起始密码子ATG才进行翻译"><input type="checkbox" id="strictModeCheckbox" checked><span class="toggle-track"></span><span class="toggle-label-text">严格模式</span></label>
-            <span class="label-text" id="frameLabel">偏移：</span>
-            <div class="segmented" id="readingFrameGroup"><button data-offset="0" class="active">+1</button><button data-offset="1">+2</button><button data-offset="2">+3</button></div>
+            <!-- <span class="label-text" id="frameLabel">偏移：</span> -->
+            <!-- <div class="segmented" id="readingFrameGroup"><button data-offset="0" class="active">+1</button><button data-offset="1">+2</button><button data-offset="2">+3</button></div> -->
             <div class="spacer"></div>
             <button type="button" class="btn btn-outline btn-sm" id="btnClear">✕ 清空</button>
             <button type="button" class="btn btn-outline btn-sm" id="btnExample">📋 示例</button>
@@ -536,7 +536,7 @@
         renderDetailTable(translation);
         // 不再调用 renderCompareCards，留待操作后由 updateAfterMod 触发
         updateOpsMini();
-        resultCard.scrollIntoView({behavior:'smooth',block:'start'});
+        // resultCard.scrollIntoView({behavior:'smooth',block:'start'});
     }
     function resetAll() { resultCard.style.display='none'; compareCard.style.display='none'; opsCard.style.display='none'; seqHighlightContainer.classList.remove('visible'); originalCleanedSeq=''; currentCleanedSeq=''; originalTranslation=null; currentTranslation=null; }
     function updateReadingFrameLabel(trans) {
