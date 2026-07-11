@@ -173,24 +173,20 @@
             const rowHeader = document.createElement('th'); rowHeader.textContent = b1; tr.appendChild(rowHeader);
             bases.forEach(b2 => {
                 const td = document.createElement('td'); td.className = 'codon-textbook-cell';
-                const smallTable = document.createElement('table'); smallTable.className = 'codon-cell-table';
+                const codonList = document.createElement('div'); codonList.className = 'codon-cell-list';
                 bases.forEach(b3 => {
                     const codon = b1 + b2 + b3;
                     const info = codonTable[codon];
-                    const row = document.createElement('tr');
-                    const codonTd = document.createElement('td'); codonTd.className = 'codon-cell-codon'; codonTd.textContent = codon;
-                    const aaTd = document.createElement('td'); aaTd.className = 'codon-cell-aa';
-                    if (info) {
-                        aaTd.textContent = `${info.fullName}`;
-                    } else {
-                        aaTd.textContent = '未知';
-                    }
-                    row.appendChild(codonTd);
-                    row.appendChild(aaTd);
-                    row.addEventListener('click', () => openAAModal(info?.oneLetter || '*'));
-                    smallTable.appendChild(row);
+                    const rowDiv = document.createElement('div'); rowDiv.className = 'codon-cell-row';
+                    const codonSpan = document.createElement('span'); codonSpan.className = 'codon-cell-codon'; codonSpan.textContent = codon;
+                    const aaSpan = document.createElement('span'); aaSpan.className = 'codon-cell-aa';
+                    aaSpan.textContent = info ? info.fullName : '未知';
+                    rowDiv.appendChild(codonSpan);
+                    rowDiv.appendChild(aaSpan);
+                    rowDiv.addEventListener('click', () => openAAModal(info?.oneLetter || '*'));
+                    codonList.appendChild(rowDiv);
                 });
-                td.appendChild(smallTable);
+                td.appendChild(codonList);
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
