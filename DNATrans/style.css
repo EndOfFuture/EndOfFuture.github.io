@@ -57,7 +57,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .badge.compare{background:#fce7f3;color:#be185d;} 
 .card-header h2{font-size:1.05rem;font-weight:600;color:#1e293b;letter-spacing:-0.01em;} 
 .card-header .hint{font-size:0.78rem;color:var(--text-muted);margin-left:auto;} 
-.textarea-wrapper{position:relative;} 
+.textarea-wrapper{position:relative;}
+.textarea-wrapper.drag-over::after{content:'📂 释放文件以上传';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,145,178,0.08);border:2px dashed #0891b2;border-radius:12px;font-size:0.95rem;font-weight:600;color:#0891b2;pointer-events:none;z-index:2;backdrop-filter:blur(2px);} 
 textarea{width:100%;min-height:110px;padding:12px 14px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.7;letter-spacing:0.02em;border:2px solid var(--border);border-radius:var(--radius);background:#fafbfc;color:var(--text);resize:vertical;transition:all var(--transition);outline:none;} 
 textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(8,145,178,0.08);background:#fff;} 
 textarea::placeholder{color:#c0c8d4;font-family:var(--font-mono);font-size:0.82rem;} 
@@ -96,6 +97,20 @@ textarea::placeholder{color:#c0c8d4;font-family:var(--font-mono);font-size:0.82r
 .alert-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;} 
 .alert-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;} 
 .alert-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;} 
+.helper-row{margin-top:8px;font-size:0.78rem;color:var(--text-secondary);background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;padding:8px 10px;} 
+.ncbi-cds-panel{margin-top:10px;border:1px solid #dbeafe;border-radius:10px;padding:10px 12px;background:linear-gradient(135deg,#f8fbff 0%,#f5faff 100%);} 
+.ncbi-cds-title{font-size:0.78rem;font-weight:700;color:#0369a1;margin-bottom:8px;letter-spacing:0.04em;text-transform:uppercase;} 
+.ncbi-cds-summary{display:flex;flex-direction:column;gap:6px;} 
+.ncbi-cds-list{display:flex;flex-wrap:wrap;gap:6px;} 
+.ncbi-cds-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #bfdbfe;border-radius:6px;background:#fff;color:#0f172a;cursor:pointer;transition:all var(--transition);font-size:0.78rem;white-space:nowrap;}
+.ncbi-cds-chip:hover{border-color:#38bdf8;box-shadow:0 4px 10px rgba(56,189,248,0.12);}
+.ncbi-cds-chip.active{background:#e0f2fe;border-color:#0891b2;box-shadow:0 4px 10px rgba(8,145,178,0.12);}
+.ncbi-cds-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
+.ncbi-cds-meta{font-size:0.68rem;color:#64748b;flex-shrink:0;}
+.ncbi-gene-info{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;flex-direction:column;gap:4px;}
+.ncbi-gene-row{display:flex;gap:6px;font-size:0.75rem;line-height:1.5;}
+.ncbi-gene-label{flex-shrink:0;min-width:56px;color:#0369a1;font-weight:600;}
+.ncbi-gene-value{color:#334155;word-break:break-word;}
 .result-section{animation:slideUp 0.35s ease;} 
 @keyframes slideUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}} 
 .seq-highlight-container{margin-top:10px;border:1px solid var(--border);border-radius:var(--radius);background:#f9fafb;padding:10px 12px;font-family:var(--font-mono);overflow-x:auto;display:none;} 
