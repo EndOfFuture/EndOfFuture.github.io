@@ -22,8 +22,8 @@
                 <h2>输入序列</h2>
                 <div class="hint">支持 FASTA 格式；U 会替换为 T</div>
             </div>
-            <div class="textarea-wrapper">
-                <textarea id="dnaInput" placeholder="在此粘贴 DNA 序列（A/T/C/G）..."></textarea>
+            <div class="textarea-wrapper" id="textareaWrapper">
+                <textarea id="dnaInput" placeholder="在此粘贴 DNA 序列（A/T/C/G），或拖拽 FASTA / GenBank 文件到此处..."></textarea>
                 <span class="char-count" id="charCount">0 个有效碱基</span>
             </div>
             <div class="controls-row">
@@ -31,10 +31,21 @@
                 <span class="label-text" id="readingFrameLabel" style="display:none;">偏移：</span>
                 <div class="segmented disabled" id="readingFrameGroup" style="display:none;"><button data-offset="0" class="active">+1</button><button data-offset="1">+2</button><button data-offset="2">+3</button></div>
                 <div class="spacer"></div>
+                <button class="btn btn-outline" id="btnUpload" title="上传 FASTA / GenBank 文件 (.fa .gb .gbk .txt)">📂 上传</button>
+                <input type="file" id="fileInput" accept=".fasta,.fa,.fna,.gb,.gbk,.txt" style="display:none;">
                 <button class="btn btn-outline" id="btnClear">清空</button>
-                <button class="btn btn-primary" id="btnTranslate">翻译</button>
-                <button class="btn btn-sm" id="btnExample">示例</button>
+                <button class="btn btn-primary" id="btnTranslateParse">翻译/解析</button>
+                <select class="btn btn-sm" id="exampleSelect" style="width:auto;padding:4px 8px;border-radius:6px;">
+                    <option value="">📋 示例...</option>
+                    <option value="anp">示例·ANP</option>
+                    <option value="genbank">示例·GenBank</option>
+                </select>
                 <button class="btn btn-sm" id="btnCopyAA" title="复制氨基酸序列">复制AA</button>
+            </div>
+            <div class="helper-row">支持直接粘贴 NCBI 下载的 GenBank/GBK 记录；程序会自动识别 CDS 区域并进行模拟翻译。</div>
+            <div id="ncbiCdsPanel" class="ncbi-cds-panel" style="display:none;">
+                <div class="ncbi-cds-title">NCBI CDS 解析结果</div>
+                <div id="ncbiCdsSummary" class="ncbi-cds-summary"></div>
             </div>
             <div id="inputAlert"></div>
         </section>
@@ -47,9 +58,9 @@
         </section>
 
         <section id="opsCard" class="card" style="display:none;">
-            <div class="card-header"><div class="badge ops">🧪</div><h2>序列操作</h2><div class="hint">插入 / 删除 / 替换</div></div>
+            <div class="card-header"><div class="badge ops">🧪</div><h2>序列操作</h2><div class="hint">插入 (INS) / 缺失 (DEL) / 替换 (SNP)</div></div>
             <div class="ops-panel">
-                <div class="ops-group"><label>操作</label><select id="opsType"><option value="insert">插入</option><option value="delete">删除</option><option value="replace">替换</option></select></div>
+                <div class="ops-group"><label>操作</label><select id="opsType"><option value="insert">插入 (INS)</option><option value="delete">缺失 (DEL)</option><option value="replace">替换 (SNP)</option></select></div>
                 <div class="ops-group"><label id="opsPosLabel">起始位置</label><input id="opsPosStart" type="number" value="1"></div>
                 <div class="ops-group" id="opsPosEndGroup" style="display:none;"><label>结束位置</label><input id="opsPosEnd" type="number" value="1"></div>
                 <div class="ops-group" id="opsSeqGroup"><label id="opsSeqLabel">插入序列</label><input id="opsInsertSeq" type="text"></div>
